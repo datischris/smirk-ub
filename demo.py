@@ -68,19 +68,18 @@ if __name__ == '__main__':
 
     # ---- visualize the results ---- #
 
+    # initilizing flame and renderer
     flame = FLAME().to(args.device)
     renderer = Renderer().to(args.device)
 
-    # check if input is an image or a video or webcam or directory
-    
-
-    
+    # assert input (an image or a video or webcam or directory)
     image = cv2.imread(args.input_path)
     orig_image_height, orig_image_width, _ = image.shape
 
+    # detecting facial landmarks for the image using vision python library
     kpt_mediapipe = run_mediapipe(image)
 
-    # crop face if needed
+    # crop face (if flag set) then if facial landmarks prominent (hence face can be found)
     if args.crop:
         if (kpt_mediapipe is None):
             print('Could not find landmarks for the image using mediapipe and cannot crop the face. Exiting...')
@@ -98,22 +97,24 @@ if __name__ == '__main__':
         cropped_image = image
         cropped_kpt_mediapipe = kpt_mediapipe
 
-    
+    # resizing and cropped image conversion to tensor
     cropped_image = cv2.cvtColor(cropped_image, cv2.COLOR_BGR2RGB)
     cropped_image = cv2.resize(cropped_image, (224,224))
     cropped_image = torch.tensor(cropped_image).permute(2,0,1).unsqueeze(0).float()/255.0
     cropped_image = cropped_image.to(args.device)
 
+    # encoding pose shape and expression to flame parameters
     outputs = smirk_encoder(cropped_image)
 
 
+    # ---- forwarding output rendering phase and outputting image (3d rendered img) ---- #
     flame_output = flame.forward(outputs)
     renderer_output = renderer.forward(flame_output['vertices'], outputs['cam'],
                                         landmarks_fan=flame_output['landmarks_fan'], landmarks_mp=flame_output['landmarks_mp'])
     
     rendered_img = renderer_output['rendered_img']
 
-
+    # render back to original size (if flag set)
     if args.render_orig:
         if args.crop:
             rendered_img_numpy = (rendered_img.squeeze(0).permute(1,2,0).detach().cpu().numpy()*255.0).astype(np.uint8)               
@@ -129,7 +130,10 @@ if __name__ == '__main__':
         grid = torch.cat([cropped_image, rendered_img], dim=3)
 
 
-    # ---- create the neural renderer reconstructed img ---- #
+    # ---- create the neural renderer reconstructed img (if use_smirk_generator flag set) ---- #
+    # 1. hull-masking with retention of 1% (0.01) of pixels
+    # 2. concat rendered_img with mask
+    # 3. smirk generator to reconstruct image
     if args.use_smirk_generator:
         if (kpt_mediapipe is None):
             print('Could not find landmarks for the image using mediapipe and cannot create the hull mask for the smirk generator. Exiting...')

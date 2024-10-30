@@ -2,11 +2,55 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import os
 from pytorch3d.structures import Meshes
 from pytorch3d.io import load_obj
 from pytorch3d.renderer.mesh import rasterize_meshes
+from pytorch3d.io import save_obj
 from src.renderer.util import face_vertices, vertex_normals, batch_orth_proj
 import pickle
+
+def export_mesh(vertices, faces, obj_filename="output_rasterized.obj"):
+    """
+    Exports mesh to an .obj file.
+
+    Parameters:
+    vertices (torch.Tensor): Tensor of shape (V, 3) with vertex positions.
+    faces (torch.Tensor): Tensor of shape (F, 3) with face vertex indices.
+    obj_filename (str): The .obj file path.
+    """
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(obj_filename), exist_ok=True)
+
+    # Save the vertices and faces in .obj format
+    save_obj(obj_filename, vertices, faces)
+    print(f"Mesh saved to {obj_filename}")
+
+def export_point_cloud_from_pixel_vals(pixel_vals, filename="output_pixel_pointcloud.obj"):
+    """
+    Exports pixel values interpreted as a 3D point cloud to an .obj file.
+
+    Parameters:
+    pixel_vals (torch.Tensor): Tensor with shape (3, H, W), where depth is represented in one channel.
+    filename (str): Output .obj file name.
+    """
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+
+    # Assuming pixel_vals has dimensions [3, H, W] where:
+    # - pixel_vals[0] contains the x-coordinates
+    # - pixel_vals[1] contains the y-coordinates
+    # - pixel_vals[2] contains the depth (z-coordinates)
+
+    H, W = pixel_vals.shape[1], pixel_vals.shape[2]
+    with open(filename, "w") as f:
+        for y in range(H):
+            for x in range(W):
+                # Get 3D coordinates from pixel_vals
+                z = pixel_vals[2, y, x].item()  # Assuming depth is in the third channel
+                if z > 0:  # Only include points with positive depth
+                    f.write(f"v {x} {y} {z}\n")
+
+    print(f"3D point cloud saved to {filename}")
 
 def keep_vertices_and_update_faces(faces, vertices_to_keep):
     """
@@ -204,6 +248,16 @@ class Renderer(nn.Module):
         pixel_vals[mask] = 0  # Replace masked values in output.
         pixel_vals = pixel_vals[:,:,:,0].permute(0,3,1,2)
         pixel_vals = torch.cat([pixel_vals, vismask[:,:,:,0][:,None,:,:]], dim=1)
+
+        # # Export only vertices and faces
+        # vertices_np = vertices[0].cpu()  # Assuming batch size of 1
+        # faces_np = faces[0].cpu()
+
+        # # Export to OBJ without colors
+        # export_mesh(vertices_np, faces_np, obj_filename="output/output_rasterized.obj")
+
+        export_point_cloud_from_pixel_vals(pixel_vals[0], filename="output/output_pixel_pointcloud.obj")
+
         return pixel_vals
 
     def add_SHlight(self, normal_images, sh_coeff):
