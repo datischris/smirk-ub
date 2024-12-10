@@ -4,6 +4,7 @@ from datasets.mead_dataset import get_datasets_MEAD
 from datasets.mead_sides_dataset import get_datasets_MEAD_sides
 from datasets.ffhq_dataset import get_datasets_FFHQ
 from datasets.celeba_dataset import get_datasets_CelebA
+from datasets.baby_dataset import get_datasets_Baby
 from datasets.mixed_dataset_sampler import MixedDatasetBatchSampler
 import os
 
@@ -16,6 +17,7 @@ def load_dataloaders(config):
     train_dataset_MEAD_sides, val_dataset_MEAD_sides, test_dataset_MEAD_sides = get_datasets_MEAD_sides(config)
     train_dataset_ffhq = get_datasets_FFHQ(config)
     train_dataset_celeba = get_datasets_CelebA(config)
+    train_dataset_baby = get_datasets_Baby(config)
 
     
     dataset_percentages = {
@@ -23,7 +25,8 @@ def load_dataloaders(config):
         'MEAD': config.dataset.MEAD_percentage,
         'FFHQ': config.dataset.FFHQ_percentage,
         'CELEBA': config.dataset.CelebA_percentage,
-        'MEAD_sides': config.dataset.MEAD_sides_percentage
+        'MEAD_sides': config.dataset.MEAD_sides_percentage,
+        'BABY': config.dataset.BABY_percentage
     }
 
     
@@ -31,14 +34,16 @@ def load_dataloaders(config):
                                                     train_dataset_MEAD, 
                                                     train_dataset_ffhq, 
                                                     train_dataset_celeba,
-                                                    train_dataset_MEAD_sides, 
+                                                    train_dataset_MEAD_sides,
+                                                    train_dataset_baby, 
                                                     ])
     
     sampler = MixedDatasetBatchSampler([len(train_dataset_LRS3),
                                         len(train_dataset_MEAD), 
                                         len(train_dataset_ffhq), 
                                         len(train_dataset_celeba),
-                                        len(train_dataset_MEAD_sides)
+                                        len(train_dataset_MEAD_sides),
+                                        len(train_dataset_baby)
                                         ], 
                                        list(dataset_percentages.values()), 
                                        config.train.batch_size, config.train.samples_per_epoch)

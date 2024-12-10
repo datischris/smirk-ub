@@ -81,12 +81,17 @@ dataset:
 
   MEAD_sides_path: /gpu-data4/filby/MEAD_preprocessed
 
+  BABY_path: /gpu-data4/filby/Baby_preprocessed
+  BABY_landmarks_path: /gpu-data4/filby/Baby/fan_landmarks_hhj1897
+  BABY_mediapipe_landmarks_path: /gpu-data4/filby/Baby/mediapipe_landmarks
+
   # percentage of data to use for each dataset
-  LRS3_percentage: 0.2
+  LRS3_percentage: 0.1
   LRS3_temporal_sampling: False
   MEAD_percentage: 0.1 
-  FFHQ_percentage: 0.3 
-  CelebA_percentage: 0.3 
+  FFHQ_percentage: 0.2 
+  CelebA_percentage: 0.2 
   MEAD_sides_percentage: 0.1
+  BABY_percentage: 0.3
   sample_full_video_for_testing: False
 
